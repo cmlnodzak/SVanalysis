@@ -34,7 +34,7 @@ hgsv_list = ['HG00512','HG00513','HG00514', 'HG00731', 'HG00732', 'HG00733', 'NA
 
 HGSV_integrated_VCF = '../PASS_Illumina_Integrate_20170206.ALL.vcf'
 
-x = VCFparser(HGSV_integrated_VCF)
+x = VCFparser(HGSV_integrated_VCF, outfy)
 
 ### grab the Bedtools corresponding to hgsv_list index.
 for i in range(len(hgsv_list)):
