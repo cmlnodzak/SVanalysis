@@ -17,8 +17,6 @@ from SVtools.helperFunctions import gtfReader
 # 'PASS_Illumina_Integrate_20170206.ALL.vcf' as infile.
 
 infile = 'PASS_Illumina_Integrate_20170206.ALL.vcf'
-#infile = sys.argv[1]
-
 svtype = infile.split('/')[-1].split('.')[1]
 pref = '.'.join(infile.split('/')[-1].split('.')[0].split("_")[0:2])
 outfy = pref+'.'+svtype+'_integrate.bed'
@@ -77,20 +75,14 @@ class VCFparser:
 
 
 
-infile = '../PASS_Illumina_Integrate_20170206.ALL.vcf'
+HGSV_integrated_VCF = '../PASS_Illumina_Integrate_20170206.ALL.vcf'
 
-x = VCFparser(infile)
+x = VCFparser(HGSV_integrated_VCF)
 
-### grab the Bedtools.
-HG00512 = x.bedtoolsList[0]
-HG00513 = x.bedtoolsList[1]
-HG00514 = x.bedtoolsList[2]
-HG00731 = x.bedtoolsList[3]
-HG00732 = x.bedtoolsList[4]
-HG00733 = x.bedtoolsList[5]
-NA19238 = x.bedtoolsList[6]
-NA19239 = x.bedtoolsList[7]
-NA19240 = x.bedtoolsList[8]
+### grab the Bedtools corresponding to hgsv_list index.
+for i in range(len(hgsv_list)):
+    hgsv_list[i] = x.bedtoolsList[i]
+
 
 gtf = '../gencode.v25.annotation.gtf'
 
