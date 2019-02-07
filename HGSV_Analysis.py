@@ -10,6 +10,8 @@ Revisions to ASE analysis based on python rather than command line tools.
 """
 from pybedtools import BedTool
 from SVtools.helperFunctions import gtfReader, VCFparser
+from scipy.stats import binom_test
+from statsmodels.stats.multitest import fdrcorrection
 
 # grep only passing variants from integrated VCF.
 # saved as file name below...
@@ -54,7 +56,24 @@ for i in range(len(hgsv_list)):
     overlap = gencode.intersect(hgsv_list[i], f=1.0,wa=True,wb=True)
     SVoverlap100.append(overlap)
              
+# Find where heterozygous SVs intersect a gene by 1bp.
+SVintersect1bp= []
+for i in range(len(hgsv_list)):
+    inter = str(hgsv_list[i])+"_1bp"
+    inter = gencode.intersect(hgsv_list[i],wa=True,wb=True)
+    SVintersect1bp.append(inter)
+    
+    
+# Now perform bedtools multicov to get read counts at the gene regions.
+# Need duplicate removed input bams, filtered for read quality,length, etc.
+# Repeat for both overlaps and intersections.
 
 
+# Next, perform binomial test from read counts to detect 
+# significant ASE events after FDR correction.
+# scipy.stats.binom_test(x, p=0.5)
+#                       x = two integers, successes and failures.
+binom_test()
+pvals = 'mypvals' # a list of pvals returned by binom_test.
+fdrcorrection(pvals, alpha=0.05, method='indep', is_sorted=False)
 
-                             
