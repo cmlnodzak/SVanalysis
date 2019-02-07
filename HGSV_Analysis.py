@@ -91,15 +91,12 @@ gencodev25 = gtfReader(gtf,'gene', 'protein_coding')
 gencode = BedTool.from_dataframe(gencodev25)
 
 # Find where heterozygous deletions and duplications 100% overlap a gene.
-chs512_100 = HG00512.intersect(gencode, F=1.0, wa=True, wb=True)                           
-chs513_100 = HG00513.intersect(gencode, F=1.0, wa=True, wb=True)
-chs514_100 = HG00514.intersect(gencode, F=1.0, wa=True, wb=True)
-pur731_100 = HG00731.intersect(gencode, F=1.0, wa=True, wb=True)                
-pur732_100 = HG00732.intersect(gencode, F=1.0, wa=True, wb=True)                
-pur733_100 = HG00733.intersect(gencode, F=1.0, wa=True, wb=True)                     
-yri238_100 = NA19238.intersect(gencode, F=1.0, wa=True, wb=True)                
-yri239_100 = NA19239.intersect(gencode, F=1.0, wa=True, wb=True)                
-yri240_100 = NA19240.intersect(gencode, F=1.0, wa=True, wb=True)                
+SVoverlap100 = []
+for i in range(len(hgsv_list)):
+    overlap = str(hgsv_list[i])+"_100"
+    overlap = gencode.intersect(hgsv_list[i], f=1.0,wa=True,wb=True)
+    SVoverlap100.append(overlap)
+             
 
 
 
