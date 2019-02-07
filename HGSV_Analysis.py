@@ -77,7 +77,7 @@ class VCFparser:
 
 
 
-infile = 'PASS_Illumina_Integrate_20170206.ALL.vcf'
+infile = '../PASS_Illumina_Integrate_20170206.ALL.vcf'
 
 x = VCFparser(infile)
 
@@ -92,13 +92,23 @@ NA19238 = x.bedtoolsList[6]
 NA19239 = x.bedtoolsList[7]
 NA19240 = x.bedtoolsList[8]
 
-gtf = 'gencode.v25.annotation.gtf'
+gtf = '../gencode.v25.annotation.gtf'
 
 gencodev25 = gtfReader(gtf,'gene', 'protein_coding')
 
+gencode = BedTool.from_dataframe(gencodev25)
 
-                            
-                            
-                 
-           
-                                
+# Find where heterozygous deletions and duplications 100% overlap a gene.
+chs512_100 = HG00512.intersect(gencode, F=1.0, wa=True, wb=True)                           
+chs513_100 = HG00513.intersect(gencode, F=1.0, wa=True, wb=True)
+chs514_100 = HG00514.intersect(gencode, F=1.0, wa=True, wb=True)
+pur731_100 = HG00731.intersect(gencode, F=1.0, wa=True, wb=True)                
+pur732_100 = HG00732.intersect(gencode, F=1.0, wa=True, wb=True)                
+pur733_100 = HG00733.intersect(gencode, F=1.0, wa=True, wb=True)                     
+yri238_100 = NA19238.intersect(gencode, F=1.0, wa=True, wb=True)                
+yri239_100 = NA19239.intersect(gencode, F=1.0, wa=True, wb=True)                
+yri240_100 = NA19240.intersect(gencode, F=1.0, wa=True, wb=True)                
+
+
+
+                             
