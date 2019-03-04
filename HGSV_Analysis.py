@@ -36,7 +36,7 @@ hgsv_list = ['HG00512','HG00513','HG00514', 'HG00731', 'HG00732', 'HG00733', 'NA
 
 HGSV_integrated_VCF = '../PASS_Illumina_Integrate_20170206.ALL.vcf'
 
-x = VCFparser(HGSV_integrated_VCF, outfy)
+x = VCFparser(HGSV_integrated_VCF, outfy, "heterozygous")
 
 ### grab the Bedtools corresponding to hgsv_list index.
 for i in range(len(hgsv_list)):
@@ -67,12 +67,25 @@ for i in range(len(hgsv_list)):
 # Now perform bedtools multicov to get read counts at the gene regions.
 # Need duplicate removed input bams, filtered for read quality,length, etc.
 # Repeat for both overlaps and intersections.
-
+multicov100 = []
+for i in range(len(SVoverlap100)):
+    mcov = str(SVoverlap100[i])+"multicov"
+    mcov = SVoverlap100[i].multi_bam_coverage( [hgsv_list[i]+"sort.h1.bam", hgsv_list[i]+"sort.h2.bam"])
+    multicov100.append(mcov)
+    
+multicov1bp = []
+for i in range(len(SVintersect1bp)):
+    mcov = str(SVintersect1bp[i])+"multicov"
+    mcov = SVintersect1bp[i].multi_bam_coverage( [hgsv_list[i]+"sort.h1.bam", hgsv_list[i]+"sort.h2.bam"])
+    multicov1bp.append(mcov)
 
 # Next, perform binomial test from read counts to detect 
 # significant ASE events after FDR correction.
 # scipy.stats.binom_test(x, p=0.5)
 #                       x = two integers, successes and failures.
+
+
+
 binom_test()
 pvals = 'mypvals' # a list of pvals returned by binom_test.
 fdrcorrection(pvals, alpha=0.05, method='indep', is_sorted=False)
