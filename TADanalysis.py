@@ -10,19 +10,13 @@ import tadtool.tad as tad
 import tadtool.plot as tp
 from pybedtools import BedTool
 
-# load regions data set
-regions = tad.HicRegionFileReader().regions("chr12_20-35Mbregions.bed")
 
-# load matrix
-matrix = tad.HicMatrixFileReader().matrix("chr12_20-35Mb.matrix.txt")
+gtf = '../gencode.v25.annotation.gtf'
 
-# prepare plot
-tad_plot = tp.TADtoolPlot(matrix, regions, norm='lin', max_dist=1000000, algorithm='directionality')
-fig, axes = tad_plot.plot('chr12:31000000-34000000')
+gencodev25 = gtfReader(gtf,'gene', 'protein_coding')
 
-# show plot
-import matplotlib.pyplot as plt
-plt.show()
+gencode = BedTool.from_dataframe(gencodev25)
+
 
 infile = 'PASS_Illumina_Integrate_20170206.ALL.vcf'
 svtype = infile.split('/')[-1].split('.')[1]
@@ -46,11 +40,20 @@ y = VCFparser(HGSV_integrated_VCF, outfy2)
 for i in range(len(hgsv_list)):
     hgsv_list[i] = x.bedtoolsList[i]
 
-gtf = '../gencode.v25.annotation.gtf'
-
-gencodev25 = gtfReader(gtf,'gene', 'protein_coding')
-
-gencode = BedTool.from_dataframe(gencodev25)
 
 
 
+
+# load regions data set
+regions = tad.load_regions("/Users/cnodzak/Desktop/Finaldomains/GM19238.finaldomains.DI.txt")
+
+# load matrix
+matrix = tad.HicMatrixFileReader().matrix()
+
+# prepare plot
+tad_plot = tp.TADtoolPlot(matrix, regions, norm='lin', max_dist=1000000, algorithm='directionality')
+fig, axes = tad_plot.plot('chr12:31000000-34000000')
+
+# show plot
+import matplotlib.pyplot as plt
+plt.show()
