@@ -16,25 +16,41 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.neighbors import KNeighborsClassifier
-from sklearn.grid_search import GridSearchCV
+from sklearn.model_selection import GridSearchCV
 from sklearn.linear_model import RidgeClassifierCV
 from sklearn.linear_model import LogisticRegressionCV
 import scipy, importlib, pprint, warnings
-from glmnetSet import glmnetSet
+import glmnet_python
+from glmnet import glmnetSet
 from glmnet import glmnet
 from cvglmnet import cvglmnet
 from cvglmnetPlot import cvglmnetPlot
-from cvglmnetPrint import cvglmnetPrint
+from glmnetPrint import glmnetPrint
 from cvglmnetCoef import cvglmnetCoef
-from cvglmentPredict import cvglmnetPredict
+from cvglmnetPredict import cvglmnetPredict
+
+import sys
+sys.stdout = sys.__stdout__ 
+log_file = open("Leukemia.models.log.txt","w")
+
+sys.stdout = log_file
+
+
+
+
 
 
 # get expression dataset for all genes and samples
-stjude = pd.read_csv("Allgenes.phase1.StJude.txt", sep="\t")
+# make a list of the subtypes 
+groups = ["BCR-ABL1", "CRLF2", "E2A_PBX1","ERG","ETV6_RUNX1","Aneuploid","MLL","Other","Ph_like_CRLF2","Ph_like_non_CRLF2"]
+
+stjude = pd.read_csv("ALL.StJude.sampXGenes.nsFilt.txt", sep="\t")
+stjude.replace(['Hyperdiploid', 'Hypodiploid'], 'Aneuploid',inplace=True)
+stjude.GroupCode.replace(5, 6,inplace=True)
 
 
 # get sample metadata information
-sample_data = pd.read_csv("All.StJude.metadata.txt", sep= "\t")
+#sample_data = pd.read_csv("All.StJude.metadata.txt", sep= "\t")
 
 # Randomly sample 75% the samples without replacement for training the models.
 # Returns two Pandas DataFrames, 'test' and 'train'.
@@ -43,14 +59,14 @@ sample_data = pd.read_csv("All.StJude.metadata.txt", sep= "\t")
 train, test = train_test_split(stjude, random_state=12)
 
 #partion x and y variables for inputs to models
-train_param = train.iloc[:,3:]
-train_group = train.iloc[:,2]
-test_param = test.iloc[:,3:]
-test_group = test.iloc[:,2]
+train_param = train.iloc[:,8:]
+train_group = train.iloc[:,1]
+test_param = test.iloc[:,8:]
+test_group = test.iloc[:,1]
 
-print("There are " + len(train_group) + " samples in the training group and \nthere are " + len(test_group) +" samples in the test group.\n")
+print("There are " + str(len(train_group)) + " samples in the training group and \nthere are " + str(len(test_group)) +" samples in the test group.\n")
 
-print("We will use "+ len(train_param.columns) + " expression values as input parameters.\n")
+print("We will use "+ str(len(train_param.columns)) + " expression values as input parameters.\n")
 
 # set unit variance and mean to 0 to create a Gaussian standardized dataset.
 # standardize using the training set distribution to avoid allowing the test 
@@ -67,20 +83,13 @@ naive = GaussianNB()
 naive.fit(z_train_param, train_group)
 pred_naive = naive.predict(z_test_param)
 acc_naive = accuracy_score(test_group, pred_naive, normalize = True)
-pre_naive_BCR = precision_score(test_group,pred_naive, pos_label = "BCR_ABL1")
-pre_naive_E2A = precision_score(test_group,pred_naive, pos_label = "E2A_PBX1")
-pre_naive_ERG = precision_score(test_group,pred_naive, pos_label = "ERG")
-pre_naive_ETV = precision_score(test_group,pred_naive, pos_label = "ETV6_RUNX1")
-pre_naive_hyper = precision_score(test_group,pred_naive, pos_label = "Hyperdiploid")
-pre_naive_hypo = precision_score(test_group,pred_naive, pos_label = "Hypodiploid")
-pre_naive_MLL = precision_score(test_group,pred_naive, pos_label = "MLL")
-pre_naive_Other = precision_score(test_group,pred_naive, pos_label = "Other")
-pre_naive_PhCRLF2 = precision_score(test_group,pred_naive, pos_label = "Ph_like_CRLF2")
-pre_naive_PhNon = precision_score(test_group,pred_naive, pos_label = "Ph_like_non_CRLF2")
+prec_naive = precision_score(test_group,pred_naive, average=None)
 
-
-
-##############################################################################
+print("The accuracy of Naive Bayes Gaussian " + str(acc_naive) )
+for i,j in zip(np.nditer(prec_naive), groups):
+    print("The precision of Naive Bayes Gaussian for ALL subtype " +j + ": "+ str(round(float(i),3) ))
+print("\n\n\n")
+print("##############################################################################")
 ##############################################################################
 ##############################################################################
 ##############################################################################
@@ -108,16 +117,12 @@ dtreeCV.fit(z_train_param, train_group)
 dtree = dtreeCV.best_estimator_
 pred_dtree = dtree.predict(z_test_param)
 acc_dtree = accuracy_score(test_group, pred_dtree, normalize = True)
-pre_dtree_BCR = precision_score(test_group,pred_dtree, pos_label = "BCR_ABL1")
-pre_dtree_E2A = precision_score(test_group,pred_dtree, pos_label = "E2A_PBX1")
-pre_dtree_ERG = precision_score(test_group,pred_dtree, pos_label = "ERG")
-pre_dtree_ETV = precision_score(test_group,pred_dtree, pos_label = "ETV6_RUNX1")
-pre_dtree_hyper = precision_score(test_group,pred_dtree, pos_label = "Hyperdiploid")
-pre_dtree_hypo = precision_score(test_group,pred_dtree, pos_label = "Hypodiploid")
-pre_dtree_MLL = precision_score(test_group,pred_dtree, pos_label = "MLL")
-pre_dtree_Other = precision_score(test_group,pred_dtree, pos_label = "Other")
-pre_dtree_PhCRLF2 = precision_score(test_group,pred_dtree, pos_label = "Ph_like_CRLF2")
-pre_dtree_PhNon = precision_score(test_group,pred_dtree, pos_label = "Ph_like_non_CRLF2")
+prec_dtree = precision_score(test_group,pred_dtree, average=None)
+print("The accuracy of Decision Tree " + str(acc_dtree) )
+for i,j in zip(np.nditer(prec_dtree), groups):
+    print("The precision of Decision Tree for ALL subtype " +j + ": "+ str(round(float(i),3) ))
+print("\n\n\n")
+print("##############################################################################")
 
 ##############################################################################
 ##############################################################################
@@ -148,16 +153,12 @@ rfCV.fit(z_train_param,train_group)
 rf = rfCV.best_estimator_
 pred_rf = rf.predict(z_test_param)
 acc_rf = accuracy_score(test_group, pred_rf, normalize = True)
-pre_rf_BCR = precision_score(test_group,pred_rf, pos_label = "BCR_ABL1")
-pre_rf_E2A = precision_score(test_group,pred_rf, pos_label = "E2A_PBX1")
-pre_rf_ERG = precision_score(test_group,pred_rf, pos_label = "ERG")
-pre_rf_ETV = precision_score(test_group,pred_rf, pos_label = "ETV6_RUNX1")
-pre_rf_hyper = precision_score(test_group,pred_rf, pos_label = "Hyperdiploid")
-pre_rf_hypo = precision_score(test_group,pred_rf, pos_label = "Hypodiploid")
-pre_rf_MLL = precision_score(test_group,pred_rf, pos_label = "MLL")
-pre_rf_Other = precision_score(test_group,pred_rf, pos_label = "Other")
-pre_rf_PhCRLF2 = precision_score(test_group,pred_rf, pos_label = "Ph_like_CRLF2")
-pre_rf_PhNon = precision_score(test_group,pred_rf, pos_label = "Ph_like_non_CRLF2")
+prec_rf = precision_score(test_group,pred_rf, average=None)
+print("The accuracy of Random Forest Classier " + str(acc_rf) )
+for i,j in zip(np.nditer(prec_rf), groups):
+    print("The precision of Random Forest Classifier for ALL subtype " +j + ": "+ str(round(float(i),3) ))
+print("\n\n\n")
+print("##############################################################################")
 
 ##############################################################################
 ##############################################################################
@@ -185,16 +186,13 @@ knnCV.fit(z_train_param, train_group)
 knn = knnCV.best_estimator_
 pred_knn = rf.predict(z_test_param)
 acc_knn = accuracy_score(test_group, pred_knn, normalize = True)
-pre_knn_BCR = precision_score(test_group,pred_knn, pos_label = "BCR_ABL1")
-pre_knn_E2A = precision_score(test_group,pred_knn, pos_label = "E2A_PBX1")
-pre_knn_ERG = precision_score(test_group,pred_knn, pos_label = "ERG")
-pre_knn_ETV = precision_score(test_group,pred_knn, pos_label = "ETV6_RUNX1")
-pre_knn_hyper = precision_score(test_group,pred_knn, pos_label = "Hyperdiploid")
-pre_knn_hypo = precision_score(test_group,pred_knn, pos_label = "Hypodiploid")
-pre_knn_MLL = precision_score(test_group,pred_knn, pos_label = "MLL")
-pre_knn_Other = precision_score(test_group,pred_knn, pos_label = "Other")
-pre_knn_PhCRLF2 = precision_score(test_group,pred_knn, pos_label = "Ph_like_CRLF2")
-pre_knn_PhNon = precision_score(test_group,pred_knn, pos_label = "Ph_like_non_CRLF2")
+prec_knn = precision_score(test_group,pred_knn, average=None)
+print("The accuracy of KNN Classier : " + str(acc_knn) )
+for i,j in zip(np.nditer(prec_knn), groups):
+    print("The precision of KNN Classifier for ALL subtype " +j + ": "+ str(round(float(i),3) ))
+print("\n\n\n")
+print("##############################################################################")
+
 
 ##############################################################################
 ##############################################################################
@@ -208,16 +206,16 @@ pred_ridge = ridge.predict(z_test_param)
 print("Ridge Classifier score test: " + ridge.score(z_test_param, test_group))
 
 acc_ridge = accuracy_score(test_group, pred_ridge, normalize = True)
-pre_ridge_BCR = precision_score(test_group,pred_ridge, pos_label = "BCR_ABL1")
-pre_ridge_E2A = precision_score(test_group,pred_ridge, pos_label = "E2A_PBX1")
-pre_ridge_ERG = precision_score(test_group,pred_ridge, pos_label = "ERG")
-pre_ridge_ETV = precision_score(test_group,pred_ridge, pos_label = "ETV6_RUNX1")
-pre_ridge_hyper = precision_score(test_group,pred_ridge, pos_label = "Hyperdiploid")
-pre_ridge_hypo = precision_score(test_group,pred_ridge, pos_label = "Hypodiploid")
-pre_ridge_MLL = precision_score(test_group,pred_ridge, pos_label = "MLL")
-pre_ridge_Other = precision_score(test_group,pred_ridge, pos_label = "Other")
-pre_ridge_PhCRLF2 = precision_score(test_group,pred_ridge, pos_label = "Ph_like_CRLF2")
-pre_ridge_PhNon = precision_score(test_group,pred_ridge, pos_label = "Ph_like_non_CRLF2")
+prec_ridge = precision_score(test_group,pred_naive, average=None)
+
+print("The accuracy of Ridge Classifier : " + str(acc_ridge) )
+for i,j in zip(np.nditer(prec_ridge), groups):
+    print("The precision of Ridge Classifier for ALL subtype " +j + ": "+ str(round(float(i),3) ))
+
+print("\n\n\n")
+print("##############################################################################")
+
+
 
 ##############################################################################
 ##############################################################################
@@ -240,28 +238,22 @@ pred_logL1 = logit_l1.predict(z_test_param)
 pred_logL2 = logit_l2.predict(z_test_param)
 
 acc_logL1 = accuracy_score(test_group, pred_logL1, normalize = True)
-pre_logL1_BCR = precision_score(test_group,pred_logL1, pos_label = "BCR_ABL1")
-pre_logL1_E2A = precision_score(test_group,pred_logL1, pos_label = "E2A_PBX1")
-pre_logL1_ERG = precision_score(test_group,pred_logL1, pos_label = "ERG")
-pre_logL1_ETV = precision_score(test_group,pred_logL1, pos_label = "ETV6_RUNX1")
-pre_logL1_hyper = precision_score(test_group,pred_logL1, pos_label = "Hyperdiploid")
-pre_logL1_hypo = precision_score(test_group,pred_logL1, pos_label = "Hypodiploid")
-pre_logL1_MLL = precision_score(test_group,pred_logL1, pos_label = "MLL")
-pre_logL1_Other = precision_score(test_group,pred_logL1, pos_label = "Other")
-pre_logL1_PhCRLF2 = precision_score(test_group,pred_logL1, pos_label = "Ph_like_CRLF2")
-pre_logL1_PhNon = precision_score(test_group,pred_logL1, pos_label = "Ph_like_non_CRLF2")
+prec_LogL1 = precision_score(test_group,pred_logL1, average=None)
 
 acc_logL2 = accuracy_score(test_group, pred_logL2, normalize = True)
-pre_logL2_BCR = precision_score(test_group,pred_logL2, pos_label = "BCR_ABL1")
-pre_logL2_E2A = precision_score(test_group,pred_logL2, pos_label = "E2A_PBX1")
-pre_logL2_ERG = precision_score(test_group,pred_logL2, pos_label = "ERG")
-pre_logL2_ETV = precision_score(test_group,pred_logL2, pos_label = "ETV6_RUNX1")
-pre_logL2_hyper = precision_score(test_group,pred_logL2, pos_label = "Hyperdiploid")
-pre_logL2_hypo = precision_score(test_group,pred_logL2, pos_label = "Hypodiploid")
-pre_logL2_MLL = precision_score(test_group,pred_logL2, pos_label = "MLL")
-pre_logL2_Other = precision_score(test_group,pred_logL2, pos_label = "Other")
-pre_logL2_PhCRLF2 = precision_score(test_group,pred_logL2, pos_label = "Ph_like_CRLF2")
-pre_logL2_PhNon = precision_score(test_group,pred_logL2, pos_label = "Ph_like_non_CRLF2")
+prec_LogL2 = precision_score(test_group,pred_logL2, average=None)
+
+print("The accuracy of CV Logistic Regression (L1): " + str(acc_logL1) )
+for i,j in zip(np.nditer(prec_LogL1), groups):
+    print("The precision of CV Logistic Regression (L1) for ALL subtype " +j + ": "+ str(round(float(i),3) ))
+
+print("The accuracy of CV Logistic Regression (L2): " + str(acc_logL2) )
+for i,j in zip(np.nditer(prec_LogL2), groups):
+    print("The precision of CV Logistic Regression (L2) for ALL subtype " +j + ": "+ str(round(float(i),3) ))
+
+print("\n\n\n")
+print("##############################################################################")
+
 
 ##############################################################################
 ##############################################################################
@@ -280,17 +272,18 @@ warnings.filterwarnings('default')
 cvglmnetPlot(elasticCV)
 pred_elastic = cvglmnetPredict(elasticCV, newx = z_test_param, s= 'lambda_min', ptype = "class")
 acc_elastic = accuracy_score(test_group, pred_elastic, normalize = True)
-pre_elastic_BCR = precision_score(test_group,pred_elastic, pos_label = "BCR_ABL1")
-pre_elastic_E2A = precision_score(test_group,pred_elastic, pos_label = "E2A_PBX1")
-pre_elastic_ERG = precision_score(test_group,pred_elastic, pos_label = "ERG")
-pre_elastic_ETV = precision_score(test_group,pred_elastic, pos_label = "ETV6_RUNX1")
-pre_elastic_hyper = precision_score(test_group,pred_elastic, pos_label = "Hyperdiploid")
-pre_elastic_hypo = precision_score(test_group,pred_elastic, pos_label = "Hypodiploid")
-pre_elastic_MLL = precision_score(test_group,pred_elastic, pos_label = "MLL")
-pre_elastic_Other = precision_score(test_group,pred_elastic, pos_label = "Other")
-pre_elastic_PhCRLF2 = precision_score(test_group,pred_elastic, pos_label = "Ph_like_CRLF2")
-pre_elastic_PhNon = precision_score(test_group,pred_elastic, pos_label = "Ph_like_non_CRLF2")
+prec_elastic = precision_score(test_group,pred_elastic, average=None)
 
+print("The accuracy of CV Elastic Net Regression (a=1.0): " + str(acc_elastic) )
+for i,j in zip(np.nditer(prec_LogL1), groups):
+    print("The precision of CV Elastic Net Regression (a=1.0) for ALL subtype " +j + ": "+ str(round(float(i),3) ))
+
+print("\n\n\n")
+print("##############################################################################")
+
+
+##############################################################################
+##############################################################################
 options = glmnetSet(alpha=0.95)
 elastic95CV = cvglmnet(x = z_train_param.copy(), y = train_group.copy(),
                  family="multinomial", mtype ="grouped", parallel = -1, foldid=elasticCV.foldid
@@ -298,17 +291,15 @@ elastic95CV = cvglmnet(x = z_train_param.copy(), y = train_group.copy(),
 cvglmnetPlot(elastic95CV)
 pred_95elastic = cvglmnetPredict(elastic95CV, newx = z_test_param, s= 'lambda_min', ptype = "class")
 acc_95elastic = accuracy_score(test_group, pred_95elastic, normalize = True)
-pre_95elastic_BCR = precision_score(test_group,pred_95elastic, pos_label = "BCR_ABL1")
-pre_95elastic_E2A = precision_score(test_group,pred_95elastic, pos_label = "E2A_PBX1")
-pre_95elastic_ERG = precision_score(test_group,pred_95elastic, pos_label = "ERG")
-pre_95elastic_ETV = precision_score(test_group,pred_95elastic, pos_label = "ETV6_RUNX1")
-pre_95elastic_hyper = precision_score(test_group,pred_95elastic, pos_label = "Hyperdiploid")
-pre_95elastic_hypo = precision_score(test_group,pred_95elastic, pos_label = "Hypodiploid")
-pre_95elastic_MLL = precision_score(test_group,pred_95elastic, pos_label = "MLL")
-pre_95elastic_Other = precision_score(test_group,pred_95elastic, pos_label = "Other")
-pre_95elastic_PhCRLF2 = precision_score(test_group,pred_95elastic, pos_label = "Ph_like_CRLF2")
-pre_95elastic_PhNon = precision_score(test_group,pred_95elastic, pos_label = "Ph_like_non_CRLF2")
+prec_95elastic = precision_score(test_group,pred_95elastic, average=None)
+print("The accuracy of CV Elastic Net Regression (a=0.95): " + str(acc_95elastic) )
+for i,j in zip(np.nditer(prec_95elastic), groups):
+    print("The precision of CV Elastic Net Regression (a=0.95) for ALL subtype " +j + ": "+ str(round(float(i),3) ))
+print("\n\n\n")
+print("##############################################################################")
 
+##############################################################################
+##############################################################################
 options = glmnetSet(alpha=0.9)
 elastic09CV = cvglmnet(x = z_train_param.copy(), y = train_group.copy(),
                  family="multinomial", mtype ="grouped", parallel = -1, foldid=elasticCV.foldid
@@ -316,17 +307,15 @@ elastic09CV = cvglmnet(x = z_train_param.copy(), y = train_group.copy(),
 cvglmnetPlot(elastic09CV)
 pred_09elastic = cvglmnetPredict(elastic09CV, newx = z_test_param, s= 'lambda_min', ptype = "class")
 acc_09elastic = accuracy_score(test_group, pred_09elastic, normalize = True)
-pre_09elastic_BCR = precision_score(test_group,pred_09elastic, pos_label = "BCR_ABL1")
-pre_09elastic_E2A = precision_score(test_group,pred_09elastic, pos_label = "E2A_PBX1")
-pre_09elastic_ERG = precision_score(test_group,pred_09elastic, pos_label = "ERG")
-pre_09elastic_ETV = precision_score(test_group,pred_09elastic, pos_label = "ETV6_RUNX1")
-pre_09elastic_hyper = precision_score(test_group,pred_09elastic, pos_label = "Hyperdiploid")
-pre_09elastic_hypo = precision_score(test_group,pred_09elastic, pos_label = "Hypodiploid")
-pre_09elastic_MLL = precision_score(test_group,pred_09elastic, pos_label = "MLL")
-pre_09elastic_Other = precision_score(test_group,pred_09elastic, pos_label = "Other")
-pre_09elastic_PhCRLF2 = precision_score(test_group,pred_09elastic, pos_label = "Ph_like_CRLF2")
-pre_09elastic_PhNon = precision_score(test_group,pred_09elastic, pos_label = "Ph_like_non_CRLF2")
+prec_09elastic = precision_score(test_group,pred_09elastic, average=None)
+print("The accuracy of CV Elastic Net Regression (a=0.9): " + str(acc_09elastic) )
+for i,j in zip(np.nditer(prec_09elastic), groups):
+    print("The precision of CV Elastic Net Regression (a=0.9) for ALL subtype " +j + ": "+ str(round(float(i),3) ))
+print("\n\n\n")
+print("##############################################################################")
 
+##############################################################################
+##############################################################################
 options = glmnetSet(alpha=0.8)
 elastic08CV = cvglmnet(x = z_train_param.copy(), y = train_group.copy(),
                  family="multinomial", mtype ="grouped", parallel = -1, foldid=elasticCV.foldid
@@ -334,17 +323,15 @@ elastic08CV = cvglmnet(x = z_train_param.copy(), y = train_group.copy(),
 cvglmnetPlot(elastic08CV)
 pred_08elastic = cvglmnetPredict(elastic08CV, newx = z_test_param, s= 'lambda_min', ptype = "class")
 acc_08elastic = accuracy_score(test_group, pred_08elastic, normalize = True)
-pre_08elastic_BCR = precision_score(test_group,pred_08elastic, pos_label = "BCR_ABL1")
-pre_08elastic_E2A = precision_score(test_group,pred_08elastic, pos_label = "E2A_PBX1")
-pre_08elastic_ERG = precision_score(test_group,pred_08elastic, pos_label = "ERG")
-pre_08elastic_ETV = precision_score(test_group,pred_08elastic, pos_label = "ETV6_RUNX1")
-pre_08elastic_hyper = precision_score(test_group,pred_08elastic, pos_label = "Hyperdiploid")
-pre_08elastic_hypo = precision_score(test_group,pred_08elastic, pos_label = "Hypodiploid")
-pre_08elastic_MLL = precision_score(test_group,pred_08elastic, pos_label = "MLL")
-pre_08elastic_Other = precision_score(test_group,pred_08elastic, pos_label = "Other")
-pre_08elastic_PhCRLF2 = precision_score(test_group,pred_08elastic, pos_label = "Ph_like_CRLF2")
-pre_08elastic_PhNon = precision_score(test_group,pred_08elastic, pos_label = "Ph_like_non_CRLF2")
+prec_08elastic = precision_score(test_group,pred_08elastic, average=None)
+print("The accuracy of CV Elastic Net Regression (a=0.8): " + str(acc_08elastic) )
+for i,j in zip(np.nditer(prec_08elastic), groups):
+    print("The precision of CV Elastic Net Regression (a=0.8) for ALL subtype " +j + ": "+ str(round(float(i),3) ))
+print("\n\n\n")
+print("##############################################################################")
 
+##############################################################################
+##############################################################################
 options = glmnetSet(alpha=0.7)
 elastic07CV = cvglmnet(x = z_train_param.copy(), y = train_group.copy(),
                  family="multinomial", mtype ="grouped", parallel = -1, foldid=elasticCV.foldid
@@ -352,17 +339,13 @@ elastic07CV = cvglmnet(x = z_train_param.copy(), y = train_group.copy(),
 cvglmnetPlot(elastic07CV)
 pred_07elastic = cvglmnetPredict(elastic07CV, newx = z_test_param, s= 'lambda_min', ptype = "class")
 acc_07elastic = accuracy_score(test_group, pred_07elastic, normalize = True)
-pre_07elastic_BCR = precision_score(test_group,pred_07elastic, pos_label = "BCR_ABL1")
-pre_07elastic_E2A = precision_score(test_group,pred_07elastic, pos_label = "E2A_PBX1")
-pre_07elastic_ERG = precision_score(test_group,pred_07elastic, pos_label = "ERG")
-pre_07elastic_ETV = precision_score(test_group,pred_07elastic, pos_label = "ETV6_RUNX1")
-pre_07elastic_hyper = precision_score(test_group,pred_07elastic, pos_label = "Hyperdiploid")
-pre_07elastic_hypo = precision_score(test_group,pred_07elastic, pos_label = "Hypodiploid")
-pre_07elastic_MLL = precision_score(test_group,pred_07elastic, pos_label = "MLL")
-pre_07elastic_Other = precision_score(test_group,pred_07elastic, pos_label = "Other")
-pre_07elastic_PhCRLF2 = precision_score(test_group,pred_07elastic, pos_label = "Ph_like_CRLF2")
-pre_07elastic_PhNon = precision_score(test_group,pred_07elastic, pos_label = "Ph_like_non_CRLF2")
+prec_07elastic = precision_score(test_group,pred_07elastic, average=None)
+print("The accuracy of CV Elastic Net Regression (a=0.7): " + str(acc_07elastic) )
+for i,j in zip(np.nditer(prec_07elastic), groups):
+    print("The precision of CV Elastic Net Regression (a=0.7) for ALL subtype " +j + ": "+ str(round(float(i),3) ))
 
+##############################################################################
+##############################################################################
 options = glmnetSet(alpha=0.6)
 elastic06CV = cvglmnet(x = z_train_param.copy(), y = train_group.copy(),
                  family="multinomial", mtype ="grouped", parallel = -1, foldid=elasticCV.foldid
@@ -370,17 +353,15 @@ elastic06CV = cvglmnet(x = z_train_param.copy(), y = train_group.copy(),
 cvglmnetPlot(elastic06CV)
 pred_06elastic = cvglmnetPredict(elastic06CV, newx = z_test_param, s= 'lambda_min', ptype = "class")
 acc_06elastic = accuracy_score(test_group, pred_06elastic, normalize = True)
-pre_06elastic_BCR = precision_score(test_group,pred_06elastic, pos_label = "BCR_ABL1")
-pre_06elastic_E2A = precision_score(test_group,pred_06elastic, pos_label = "E2A_PBX1")
-pre_06elastic_ERG = precision_score(test_group,pred_06elastic, pos_label = "ERG")
-pre_06elastic_ETV = precision_score(test_group,pred_06elastic, pos_label = "ETV6_RUNX1")
-pre_06elastic_hyper = precision_score(test_group,pred_06elastic, pos_label = "Hyperdiploid")
-pre_06elastic_hypo = precision_score(test_group,pred_06elastic, pos_label = "Hypodiploid")
-pre_06elastic_MLL = precision_score(test_group,pred_06elastic, pos_label = "MLL")
-pre_06elastic_Other = precision_score(test_group,pred_06elastic, pos_label = "Other")
-pre_06elastic_PhCRLF2 = precision_score(test_group,pred_06elastic, pos_label = "Ph_like_CRLF2")
-pre_06elastic_PhNon = precision_score(test_group,pred_06elastic, pos_label = "Ph_like_non_CRLF2")
+prec_06elastic = precision_score(test_group,pred_06elastic, average=None)
+print("The accuracy of CV Elastic Net Regression (a=0.6): " + str(acc_06elastic) )
+for i,j in zip(np.nditer(prec_06elastic), groups):
+    print("The precision of CV Elastic Net Regression (a=0.6) for ALL subtype " +j + ": "+ str(round(float(i),3) ))
+print("\n\n\n")
+print("##############################################################################")
 
+##############################################################################
+##############################################################################
 options = glmnetSet(alpha=0.5)
 elastic05CV = cvglmnet(x = z_train_param.copy(), y = train_group.copy(),
                  family="multinomial", mtype ="grouped", parallel = -1, foldid=elasticCV.foldid
@@ -388,16 +369,15 @@ elastic05CV = cvglmnet(x = z_train_param.copy(), y = train_group.copy(),
 cvglmnetPlot(elastic05CV)
 pred_05elastic = cvglmnetPredict(elastic05CV, newx = z_test_param, s= 'lambda_min', ptype = "class")
 acc_05elastic = accuracy_score(test_group, pred_05elastic, normalize = True)
-pre_05elastic_BCR = precision_score(test_group,pred_05elastic, pos_label = "BCR_ABL1")
-pre_05elastic_E2A = precision_score(test_group,pred_05elastic, pos_label = "E2A_PBX1")
-pre_05elastic_ERG = precision_score(test_group,pred_05elastic, pos_label = "ERG")
-pre_05elastic_ETV = precision_score(test_group,pred_05elastic, pos_label = "ETV6_RUNX1")
-pre_05elastic_hyper = precision_score(test_group,pred_05elastic, pos_label = "Hyperdiploid")
-pre_05elastic_hypo = precision_score(test_group,pred_05elastic, pos_label = "Hypodiploid")
-pre_05elastic_MLL = precision_score(test_group,pred_05elastic, pos_label = "MLL")
-pre_05elastic_Other = precision_score(test_group,pred_05elastic, pos_label = "Other")
-pre_05elastic_PhCRLF2 = precision_score(test_group,pred_05elastic, pos_label = "Ph_like_CRLF2")
-pre_05elastic_PhNon = precision_score(test_group,pred_05elastic, pos_label = "Ph_like_non_CRLF2")
+prec_05elastic = precision_score(test_group,pred_05elastic, average=None)
+print("The accuracy of CV Elastic Net Regression (a=0.5): " + str(acc_05elastic) )
+for i,j in zip(np.nditer(prec_05elastic), groups):
+    print("The precision of CV Elastic Net Regression (a=0.5) for ALL subtype " +j + ": "+ str(round(float(i),3) ))
+print("\n\n\n")
+print("##############################################################################")
+
+##############################################################################
+##############################################################################
 
 options = glmnetSet(alpha=0.4)
 elastic04CV = cvglmnet(x = z_train_param.copy(), y = train_group.copy(),
@@ -406,17 +386,15 @@ elastic04CV = cvglmnet(x = z_train_param.copy(), y = train_group.copy(),
 cvglmnetPlot(elastic04CV)
 pred_04elastic = cvglmnetPredict(elastic04CV, newx = z_test_param, s= 'lambda_min', ptype = "class")
 acc_04elastic = accuracy_score(test_group, pred_04elastic, normalize = True)
-pre_04elastic_BCR = precision_score(test_group,pred_04elastic, pos_label = "BCR_ABL1")
-pre_04elastic_E2A = precision_score(test_group,pred_04elastic, pos_label = "E2A_PBX1")
-pre_04elastic_ERG = precision_score(test_group,pred_04elastic, pos_label = "ERG")
-pre_04elastic_ETV = precision_score(test_group,pred_04elastic, pos_label = "ETV6_RUNX1")
-pre_04elastic_hyper = precision_score(test_group,pred_04elastic, pos_label = "Hyperdiploid")
-pre_04elastic_hypo = precision_score(test_group,pred_04elastic, pos_label = "Hypodiploid")
-pre_04elastic_MLL = precision_score(test_group,pred_04elastic, pos_label = "MLL")
-pre_04elastic_Other = precision_score(test_group,pred_04elastic, pos_label = "Other")
-pre_04elastic_PhCRLF2 = precision_score(test_group,pred_04elastic, pos_label = "Ph_like_CRLF2")
-pre_04elastic_PhNon = precision_score(test_group,pred_04elastic, pos_label = "Ph_like_non_CRLF2")
+prec_04elastic = precision_score(test_group,pred_04elastic, average=None)
+print("The accuracy of CV Elastic Net Regression (a=0.4): " + str(acc_04elastic) )
+for i,j in zip(np.nditer(prec_04elastic), groups):
+    print("The precision of CV Elastic Net Regression (a=0.4) for ALL subtype " +j + ": "+ str(round(float(i),3) ))
+print("\n\n\n")
+print("##############################################################################")
 
+##############################################################################
+##############################################################################
 options = glmnetSet(alpha=0.3)
 elastic03CV = cvglmnet(x = z_train_param.copy(), y = train_group.copy(),
                  family="multinomial", mtype ="grouped", parallel = -1, foldid=elasticCV.foldid
@@ -424,17 +402,15 @@ elastic03CV = cvglmnet(x = z_train_param.copy(), y = train_group.copy(),
 cvglmnetPlot(elastic03CV)
 pred_03elastic = cvglmnetPredict(elastic03CV, newx = z_test_param, s= 'lambda_min', ptype = "class")
 acc_03elastic = accuracy_score(test_group, pred_03elastic, normalize = True)
-pre_03elastic_BCR = precision_score(test_group,pred_03elastic, pos_label = "BCR_ABL1")
-pre_03elastic_E2A = precision_score(test_group,pred_03elastic, pos_label = "E2A_PBX1")
-pre_03elastic_ERG = precision_score(test_group,pred_03elastic, pos_label = "ERG")
-pre_03elastic_ETV = precision_score(test_group,pred_03elastic, pos_label = "ETV6_RUNX1")
-pre_03elastic_hyper = precision_score(test_group,pred_03elastic, pos_label = "Hyperdiploid")
-pre_03elastic_hypo = precision_score(test_group,pred_03elastic, pos_label = "Hypodiploid")
-pre_03elastic_MLL = precision_score(test_group,pred_03elastic, pos_label = "MLL")
-pre_03elastic_Other = precision_score(test_group,pred_03elastic, pos_label = "Other")
-pre_03elastic_PhCRLF2 = precision_score(test_group,pred_03elastic, pos_label = "Ph_like_CRLF2")
-pre_03elastic_PhNon = precision_score(test_group,pred_03elastic, pos_label = "Ph_like_non_CRLF2")
+prec_03elastic = precision_score(test_group,pred_03elastic, average=None)
+print("The accuracy of CV Elastic Net Regression (a=0.3): " + str(acc_03elastic) )
+for i,j in zip(np.nditer(prec_03elastic), groups):
+    print("The precision of CV Elastic Net Regression (a=0.3) for ALL subtype " +j + ": "+ str(round(float(i),3) ))
+print("\n\n\n")
+print("##############################################################################")
 
+##############################################################################
+##############################################################################
 options = glmnetSet(alpha=0.2)
 elastic02CV = cvglmnet(x = z_train_param.copy(), y = train_group.copy(),
                  family="multinomial", mtype ="grouped", parallel = -1, foldid=elasticCV.foldid
@@ -442,17 +418,15 @@ elastic02CV = cvglmnet(x = z_train_param.copy(), y = train_group.copy(),
 cvglmnetPlot(elastic02CV)
 pred_02elastic = cvglmnetPredict(elastic02CV, newx = z_test_param, s= 'lambda_min', ptype = "class")
 acc_02elastic = accuracy_score(test_group, pred_02elastic, normalize = True)
-pre_02elastic_BCR = precision_score(test_group,pred_02elastic, pos_label = "BCR_ABL1")
-pre_02elastic_E2A = precision_score(test_group,pred_02elastic, pos_label = "E2A_PBX1")
-pre_02elastic_ERG = precision_score(test_group,pred_02elastic, pos_label = "ERG")
-pre_02elastic_ETV = precision_score(test_group,pred_02elastic, pos_label = "ETV6_RUNX1")
-pre_02elastic_hyper = precision_score(test_group,pred_02elastic, pos_label = "Hyperdiploid")
-pre_02elastic_hypo = precision_score(test_group,pred_02elastic, pos_label = "Hypodiploid")
-pre_02elastic_MLL = precision_score(test_group,pred_02elastic, pos_label = "MLL")
-pre_02elastic_Other = precision_score(test_group,pred_02elastic, pos_label = "Other")
-pre_02elastic_PhCRLF2 = precision_score(test_group,pred_02elastic, pos_label = "Ph_like_CRLF2")
-pre_02elastic_PhNon = precision_score(test_group,pred_02elastic, pos_label = "Ph_like_non_CRLF2")
+prec_02elastic = precision_score(test_group,pred_02elastic, average=None)
+print("The accuracy of CV Elastic Net Regression (a=0.2): " + str(acc_02elastic) )
+for i,j in zip(np.nditer(prec_02elastic), groups):
+    print("The precision of CV Elastic Net Regression (a=0.2) for ALL subtype " +j + ": "+ str(round(float(i),3) ))
+print("\n\n\n")
+print("##############################################################################")
 
+##############################################################################
+##############################################################################
 options = glmnetSet(alpha=0.1)
 elastic01CV = cvglmnet(x = z_train_param.copy(), y = train_group.copy(),
                  family="multinomial", mtype ="grouped", parallel = -1, foldid=elasticCV.foldid
@@ -460,15 +434,15 @@ elastic01CV = cvglmnet(x = z_train_param.copy(), y = train_group.copy(),
 cvglmnetPlot(elastic01CV)
 pred_01elastic = cvglmnetPredict(elastic01CV, newx = z_test_param, s= 'lambda_min', ptype = "class")
 acc_01elastic = accuracy_score(test_group, pred_01elastic, normalize = True)
-pre_01elastic_BCR = precision_score(test_group,pred_01elastic, pos_label = "BCR_ABL1")
-pre_01elastic_E2A = precision_score(test_group,pred_01elastic, pos_label = "E2A_PBX1")
-pre_01elastic_ERG = precision_score(test_group,pred_01elastic, pos_label = "ERG")
-pre_01elastic_ETV = precision_score(test_group,pred_01elastic, pos_label = "ETV6_RUNX1")
-pre_01elastic_hyper = precision_score(test_group,pred_01elastic, pos_label = "Hyperdiploid")
-pre_01elastic_hypo = precision_score(test_group,pred_01elastic, pos_label = "Hypodiploid")
-pre_01elastic_MLL = precision_score(test_group,pred_01elastic, pos_label = "MLL")
-pre_01elastic_Other = precision_score(test_group,pred_01elastic, pos_label = "Other")
-pre_01elastic_PhCRLF2 = precision_score(test_group,pred_01elastic, pos_label = "Ph_like_CRLF2")
-pre_01elastic_PhNon = precision_score(test_group,pred_01elastic, pos_label = "Ph_like_non_CRLF2")
+prec_01elastic= precision_score(test_group,pred_01elastic, average=None)
+print("The accuracy of CV Elastic Net Regression (a=0.1): " + str(acc_01elastic) )
+for i,j in zip(np.nditer(prec_01elastic), groups):
+    print("The precision of CV Elastic Net Regression (a=0.1) for ALL subtype " +j + ": "+ str(round(float(i),3) ))
+print("\n\n\n")
+print("##############################################################################")
 
+##############################################################################
+##############################################################################
+sys.__stdout__  = sys.stdout
 
+log_file.close()
